@@ -1,6 +1,6 @@
 = fluidinfo
 
-Description goes here.
+Fluidinfo.rb provides a simple interface to fluidinfo.
 
 == Contributing to fluidinfo
  

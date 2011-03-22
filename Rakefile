@@ -15,14 +15,16 @@ Jeweler::Tasks.new do |gem|
   gem.name = "fluidinfo"
   gem.homepage = "http://github.com/gridaphobe/fluidinfo"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = %Q{Provides a simple interface to fluidinfo}
+  gem.description = %Q{This gem provides a simple interface to fluidinfo, built on top of the rest-client gem.}
   gem.email = "gridaphobe@gmail.com"
   gem.authors = ["Eric Seidel"]
   # Include your dependencies below. Runtime dependencies are required when using your gem,
   # and development dependencies are only needed for development (ie running rake tasks, tests, etc)
   #  gem.add_runtime_dependency 'jabber4r', '> 0.1'
   #  gem.add_development_dependency 'rspec', '> 1.2.3'
+  gem.add_runtime_dependency "rest-client"
+  gem.add_runtime_dependency "json"
 end
 Jeweler::RubygemsDotOrgTasks.new
 
