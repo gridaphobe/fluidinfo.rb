@@ -5,7 +5,7 @@ Fluidinfo.rb provides a simple interface to fluidinfo.
 ## Simple Example
 
 	>> require 'fluidinfo'
-	>> fluid = Fluidinfo.new
+	>> fluid = Fluidinfo::Client.new
 	>> fluid.get '/objects', :query => 'has gridaphobe/met'
 	=> {"ids"=>["fa0bb30b-d1c2-4438-b65c-d86bbb1a44cd"]}
 
