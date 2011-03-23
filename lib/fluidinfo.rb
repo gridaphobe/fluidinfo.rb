@@ -1,8 +1,7 @@
 require "rest-client"
 require "uri"
-require "json"
+require "yajl/json_gem"
 require "base64"
-require "crack/json"
 
 module Fluidinfo
   class Client
@@ -38,26 +37,9 @@ module Fluidinfo
     # consult the {Fluidinfo API documentation}[api.fluidinfo.com] for a list of
     # appropriate options
     def get(path, options={})
-      path = @instance + path
-      args = ''
-      options.each do |key, val|
-        if key == :tags
-          val.each do |tag|
-            args += "&tag=#{URI.escape tag.to_s}"
-          end
-        else
-          args += "&#{URI.escape key.to_s}=#{URI.escape val.to_s}"
-        end
-        args[0] = '?'
-      end
-      path += args
-      response = RestClient.get path, @headers
-      begin
-        JSON.load response.to_str
-      rescue JSON::ParserError
-        # this should mean that fluidinfo returned a non-hash/array primitive
-        Crack::JSON.parse response.to_str
-      end
+      url = build_url path, options
+      response = RestClient.get url, @headers
+      JSON.parse response
     end
 
     ##
@@ -93,29 +75,19 @@ module Fluidinfo
     #
     # +options[:mime]+ contains the MIME-type unless the payload is JSON-encodable
     def put(path, options={})
-      path = @instance + path
-      if options[:query]
-        query = URI.escape options[:query]
-        path += "?query=#{query}"
-      end
+      url = build_url path, options
       body = options[:body]
       if options[:mime]
         mime = options[:mime]
       else
         mime = "application/json"
-        begin
-          body = JSON.dump options[:body]
-        rescue JSON::GeneratorError
-          if options[:body] == nil
-            body = "null"
-          else
-            body = options[:body].to_s
-          end
-        end
+        body = JSON.dump body
       end
       # nothing returned in response body for PUT
       headers = @headers.merge :content_type => mime
-      RestClient.put path, body, headers
+      RestClient.put url, body, headers # do |resp, req, res|
+      #         puts resp.payload
+      #       end
     end
 
     ##
@@ -125,20 +97,35 @@ module Fluidinfo
     # consult the {Fluidinfo API documentation}[api.fluidinfo.com] for a list of
     # appropriate options
     def delete(path, options={})
-      path = @instance + path
-      if options[:query]
-        query = URI.escape options[:query]
-        path += "?query=#{query}"
-      end
-      if options[:tags]
-        options[:tags].each do |tag|
-          tag = URI.escape tag
-          path += "&tag=#{tag}"
+      url = build_url path, options
+      # nothing returned in response body for DELETE
+      RestClient.delete url, @headers
+    end
+    
+    private
+      ##
+      # Build a url from the given path and url args
+      def build_url(path, options={})
+        opts = options.reject do |key, val|
+          [:body, :mime].include? key
+        end
+        args = opts.inject([]) do |arr, (key, val)|
+          if key == :tags
+            # dealing with tag list
+            val.each do |tag|
+              arr << "tag=#{tag}"
+            end
+          else
+            arr << "#{key}=#{val}"
+          end
+          arr
+        end.join('&')
+        if args != ''
+          URI.escape "#{@instance}#{path}?#{args}"
+        else
+          "#{@instance}#{path}"
         end
       end
-      # nothing returned in response body for DELETE
-      RestClient.delete path, @headers
-    end
   end
   
   def self.version

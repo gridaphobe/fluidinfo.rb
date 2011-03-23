@@ -73,6 +73,24 @@ class FluidinfoTest < Test::Unit::TestCase
                                           :returnNamespaces => true)
       end
     end
+    
+    context "/values" do
+      should "retrieve a set of tags" do
+        expected = {
+          "results" => {
+            "id"      => {
+              "e034d8c0-a2e4-4094-895b-3a8065f9696e" => {
+                "fluiddb/users/username" => { "value" => "gridaphobe" },
+                "fluiddb/about" => { "value" => "Object for the user named gridaphobe"}
+              }
+            }
+          }
+        }
+        assert_equal expected, @fluid.get("/values",
+                              :query => 'fluiddb/users/username="gridaphobe"',
+                              :tags => ['fluiddb/users/username', 'fluiddb/about'])
+      end
+    end
   end
 
   context "POST" do
@@ -128,7 +146,7 @@ class FluidinfoTest < Test::Unit::TestCase
         # sent to Fluidinfo
         primitives = [1, 1.1, "foo", true, nil, [1, 2, 3]]
         primitives.each do |p|
-          resp = @fluid.put path, :body => p
+          resp = @fluid.put(path, :body => p)
           assert_equal p, @fluid.get(path)
         end
 
