@@ -1,6 +1,7 @@
 GEM
   remote: http://rubygems.org/
   specs:
+    crack (0.1.8)
     git (1.2.5)
     jeweler (1.5.2)
       bundler (~> 1.0.0)
@@ -13,14 +14,17 @@ GEM
     rest-client (1.6.1)
       mime-types (>= 1.16)
     shoulda (2.11.3)
+    uuidtools (2.1.2)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
   bundler (~> 1.0.0)
+  crack
   jeweler (~> 1.5.2)
-  json
+  json (>= 1.5.1)
   rcov
-  rest-client
+  rest-client (>= 1.6.1)
   shoulda
+  uuidtools (>= 2.1.2)

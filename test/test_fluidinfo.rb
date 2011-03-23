@@ -1,4 +1,5 @@
 require 'helper'
+require 'uuidtools'
 
 class FluidinfoTest < Test::Unit::TestCase
   context "GET" do
@@ -70,6 +71,70 @@ class FluidinfoTest < Test::Unit::TestCase
                                           :returnDescription => true,
                                           :returnTags => true,
                                           :returnNamespaces => true)
+      end
+    end
+  end
+
+  context "POST" do
+    setup do
+      @fluid = Fluidinfo::Client.new :sandbox
+      @fluid.login 'test', 'test'
+    end
+
+    context "/namespaces" do
+      should "create new namespaces" do
+        new_ns = UUIDTools::UUID.random_create
+        body = {
+          'description' => 'a test namespace',
+          'name'        => new_ns
+        }
+        resp = @fluid.post "/namespaces/test", :body => body
+        # assert_equal 201, resp.code
+        assert_not_nil resp["id"]
+        
+        # now cleanup
+        @fluid.delete "/namespaces/test/#{new_ns}"
+      end
+    end
+  end
+
+  context "PUT" do
+    setup do
+      @fluid = Fluidinfo::Client.new :sandbox
+      @fluid.login 'test', 'test'
+    end
+
+    context "/tags" do
+      should "update tag values" do
+        new_ns = UUIDTools::UUID.random_create
+        ns_body = {
+          'description' => 'a test namespace',
+          'name' => new_ns
+        }
+        resp = @fluid.post '/namespaces/test', :body => ns_body
+        assert_not_nil resp["id"]
+        ns_id = resp["id"]      # for later use
+
+        new_tag = UUIDTools::UUID.random_create
+        tag_body = {
+          'description' => 'a test tag',
+          'name' => new_tag,
+          'indexed' => false
+        }
+        resp = @fluid.post "/tags/test/#{new_ns}", :body => tag_body
+        assert_not_nil resp["id"]
+        path = "/objects/#{ns_id}/test/#{new_ns}/#{new_tag}"
+        # Make sure that all primitive values are properly encoded and
+        # sent to Fluidinfo
+        primitives = [1, 1.1, "foo", true, nil, [1, 2, 3]]
+        primitives.each do |p|
+          resp = @fluid.put path, :body => p
+          assert_equal p, @fluid.get(path)
+        end
+
+        # now cleanup
+        @fluid.delete "/tags/test/#{new_ns}/#{new_tag}"
+        @fluid.delete "/namespaces/test/#{new_ns}"
       end
     end
   end
