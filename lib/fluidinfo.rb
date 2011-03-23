@@ -1,6 +1,7 @@
 require "rest-client"
 require "uri"
 require "json"
+require "base64"
 
 module Fluidinfo
   class Client
@@ -9,25 +10,29 @@ module Fluidinfo
     # The sandbox instance, test your code here.
     @@SANDBOX = 'https://sandbox.fluidinfo.com'
     
-    def initialize(sandbox=false)
-      if sandbox
+    def initialize(options={})
+      if options[:sandbox]
         @instance = @@SANDBOX
       else
         @instance = @@MAIN
       end
-      @fluid = RestClient::Resource.new @instance
+      @headers = {
+        "Accept" => "*/*"
+      }
     end
 
     def login(user, pass)
-      @fluid = RestClient::Resource.new @instance, :user => user, :password => pass
+      auth = "Basic " + (Base64.encode64 "#{user}:#{pass}").strip
+      @headers["Authorization"] = auth
     end
 
     def logout
-      @fluid = RestClient::Resource.new @instance
+      @headers.delete "Authorization"
     end
 
     # Call GET
     def get(path, options={})
+      path = @instance + path
       args = ''
       options.each do |key, val|
         if key == :tags
@@ -40,46 +45,77 @@ module Fluidinfo
         args[0] = '?'
       end
       path += args
-      response = @fluid[path].get
+      response = RestClient.get path, @headers
       begin
         JSON.load response.to_str
-      rescue
+      rescue JSON::ParserError
+        # this should mean that fluidinfo returned a non-hash/array primitive
         eval response.to_str
       end
     end
-    
-    def post(path, body=nil, mime=nil)
-      unless mime
-        mime = :json
-        body = JSON.dump body
-      end
-      JSON.parse(@fluid[path].post body, :content_type => mime)
+
+    def head(path)
+      path = @instance + path
+      RestClient.head path
     end
     
-    def put(path, body=nil, mime=nil, query=nil)
-      if query
-        query = URI.escape query
-        path += "?query=#{query}"
+    def post(path, options={})
+      path = @instance + path
+      if options[:body]
+        if options[:mime]
+          mime = options[:mime]
+          body = options[:body]
+        else
+          mime = "application/json"
+          begin
+            body = JSON.dump options[:body]
+          rescue JSON::GeneratorError
+            body = options[:body]
+          end
+        end
+        headers = @headers.merge :content_type => mime
+        JSON.parse(RestClient.post path, body, headers)
+      else
+        JSON.parse(RestClient.post path, nil)
       end
-      unless mime
-        mime = :json
-        body = JSON.dump body
-      end
-      JSON.parse(@fluid[path].put body, :content_type => mime)
     end
     
-    def delete(path, query=nil, tags=nil)
-      if query
-        query = URI.escape query
+    def put(path, options={})
+      path = @instance + path
+      if options[:query]
+        query = URI.escape options[:query]
         path += "?query=#{query}"
       end
-      if tags
-        tags.each do |tag|
+      body = options[:body]
+      if options[:mime]
+        mime = options[:mime]
+      else
+        mime = "application/json"
+        begin
+          body = JSON.dump options[:body]
+        rescue JSON::GeneratorError
+          body = options[:body]
+        end
+      end
+      # nothing returned in response body for PUT
+      headers = @headers.merge :content_type => mime
+      RestClient.put path, body, headers
+    end
+    
+    def delete(path, options={})
+      path = @instance + path
+      if options[:query]
+        query = URI.escape options[:query]
+        path += "?query=#{query}"
+      end
+      if options[:tags]
+        options[:tags].each do |tag|
           tag = URI.escape tag
           path += "&tag=#{tag}"
         end
       end
-      JSON.parse(@fluid[path].delete)
+      # nothing returned in response body for DELETE
+      RestClient.delete path
     end
   end
 end

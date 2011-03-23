@@ -37,7 +37,7 @@ class FluidinfoTest < Test::Unit::TestCase
         }
         assert_equal expected, @fluid.get("/objects/#{uid}")
       end
-        
+      
       should "raise 404 errors on bad request" do
         uid = "1"
         tag = "gridaphobe/given-name"
