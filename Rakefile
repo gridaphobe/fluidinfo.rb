@@ -13,7 +13,7 @@ require 'jeweler'
 Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
   gem.name = "fluidinfo"
-  gem.homepage = "http://github.com/gridaphobe/fluidinfo"
+  gem.homepage = "http://github.com/gridaphobe/fluidinfo.rb"
   gem.license = "MIT"
   gem.summary = %Q{Provides a simple interface to fluidinfo}
   gem.description = %Q{This gem provides a simple interface to fluidinfo, built on top of the rest-client gem.}
