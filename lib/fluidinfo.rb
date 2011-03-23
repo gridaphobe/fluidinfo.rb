@@ -140,4 +140,12 @@ module Fluidinfo
       RestClient.delete path, @headers
     end
   end
+  
+  def self.version
+    # This was borrowed from the rest-client gem :)
+    version_path = File.dirname(__FILE__) + "/../VERSION"
+    return File.read(version_path).chomp if File.file?(version_path)
+    "0.0.0"
+  end
+
 end
