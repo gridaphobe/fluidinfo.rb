@@ -124,7 +124,7 @@ module Fluidinfo
       ##
       # Build the payload from the options hash
       def build_payload(options)
-        payload = options.select {|k,v| [:body, :mime].include? k}
+        payload = options.reject {|k,v| !([:body, :mime].include? k)}
         if payload[:mime]
           # user set mime-type, let them deal with it :)
           payload
