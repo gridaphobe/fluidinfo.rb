@@ -2,8 +2,13 @@ require "rest-client"
 require "uri"
 require "yajl/json_gem"
 require "base64"
+require "set"
 
 module Fluidinfo
+  ITERABLE_TYPES = Set.new [Array, Hash]
+  SERIALIZABLE_TYPES = Set.new [NilClass, String, Fixnum, Float, Symbol,
+    TrueClass, FalseClass]
+  
   class Client
     # The main fluidinfo instance.
     @@MAIN    = 'https://fluiddb.fluidinfo.com'
@@ -58,11 +63,9 @@ module Fluidinfo
     def post(path, options={})
       path = @instance + path
       if options[:body]
-        body = options[:body]
-        mime = "application/json"
-        body = JSON.dump options[:body]
-        headers = @headers.merge :content_type => mime
-        JSON.parse(RestClient.post path, body, headers)
+        payload = build_payload options
+        headers = @headers.merge :content_type => payload[:mime]
+        JSON.parse(RestClient.post path, payload[:body], headers)
       else
         JSON.parse(RestClient.post path, nil)
       end
@@ -76,18 +79,9 @@ module Fluidinfo
     # +options[:mime]+ contains the MIME-type unless the payload is JSON-encodable
     def put(path, options={})
       url = build_url path, options
-      body = options[:body]
-      if options[:mime]
-        mime = options[:mime]
-      else
-        mime = "application/json"
-        body = JSON.dump body
-      end
-      # nothing returned in response body for PUT
-      headers = @headers.merge :content_type => mime
-      RestClient.put url, body, headers # do |resp, req, res|
-      #         puts resp.payload
-      #       end
+      payload = build_payload options
+      headers = @headers.merge :content_type => payload[:mime]
+      RestClient.put url, payload[:body], headers
     end
 
     ##
@@ -124,6 +118,26 @@ module Fluidinfo
           URI.escape "#{@instance}#{path}?#{args}"
         else
           "#{@instance}#{path}"
+        end
+      end
+      
+      ##
+      # Build the payload from the options hash
+      def build_payload(options)
+        payload = options.select {|k,v| [:body, :mime].include? k}
+        if payload[:mime]
+          # user set mime-type, let them deal with it :)
+          payload
+        elsif ITERABLE_TYPES.include? payload[:body].class
+          payload[:body] = JSON.dump payload[:body]
+          payload[:mime] = "application/json"
+          payload
+        elsif SERIALIZABLE_TYPES.include? payload[:body].class
+          payload[:body] = JSON.dump payload[:body]
+          payload[:mime] = "application/vnd.fluiddb.value+json"
+          payload
+        else
+          raise TypeError, "You must supply the mime-type"
         end
       end
   end

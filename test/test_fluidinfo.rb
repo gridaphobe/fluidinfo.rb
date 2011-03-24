@@ -144,7 +144,7 @@ class FluidinfoTest < Test::Unit::TestCase
         path = "/objects/#{ns_id}/test/#{new_ns}/#{new_tag}"
         # Make sure that all primitive values are properly encoded and
         # sent to Fluidinfo
-        primitives = [1, 1.1, "foo", true, nil, [1, 2, 3]]
+        primitives = [1, 1.1, "foo", true, nil, [1, '2', 3]]
         primitives.each do |p|
           resp = @fluid.put(path, :body => p)
           assert_equal p, @fluid.get(path)
