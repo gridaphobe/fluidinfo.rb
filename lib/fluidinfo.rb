@@ -5,16 +5,18 @@ require "base64"
 require "set"
 
 module Fluidinfo
-  ITERABLE_TYPES = Set.new [Array, Hash]
+  ITERABLE_TYPES     = Set.new [Array, Hash]
   SERIALIZABLE_TYPES = Set.new [NilClass, String, Fixnum, Float, Symbol,
-    TrueClass, FalseClass]
+                                TrueClass, FalseClass]
+  JSON_TYPES         = Set.new ["application/json",
+                                "application/vnd.fluiddb.value+json"]
   
   class Client
     # The main fluidinfo instance.
     @@MAIN    = 'https://fluiddb.fluidinfo.com'
     # The sandbox instance, test your code here.
     @@SANDBOX = 'https://sandbox.fluidinfo.com'
-    
+
     def initialize(instance=:main)
       if instance == :sandbox
         @instance = @@SANDBOX
@@ -44,7 +46,7 @@ module Fluidinfo
     def get(path, options={})
       url = build_url path, options
       response = RestClient.get url, @headers
-      if ['application/json', 'application/vnd.fluiddb.value+json'].include? response.headers[:content_type]
+      if JSON_TYPES.include? response.headers[:content_type]
         JSON.parse response
       else
         response
@@ -84,7 +86,8 @@ module Fluidinfo
     def put(path, options={})
       url = build_url path, options
       payload = build_payload options
-      headers = @headers.merge :content_type => payload[:mime], :content_length => payload[:size]
+      headers = @headers.merge(:content_type   => payload[:mime],
+                               :content_length => payload[:size])
       RestClient.put url, payload[:body], headers
     end
 
@@ -99,59 +102,59 @@ module Fluidinfo
       # nothing returned in response body for DELETE
       RestClient.delete url, @headers
     end
-    
+
     private
-      ##
-      # Build a url from the given path and url args
-      def build_url(path, options={})
-        opts = options.reject do |key, val|
-          [:body, :mime].include? key
-        end
-        args = opts.inject([]) do |arr, (key, val)|
-          if key == :tags
-            # dealing with tag list
-            val.each do |tag|
-              arr << "tag=#{tag}"
-            end
-          else
-            arr << "#{key}=#{val}"
-          end
-          arr
-        end.join('&')
-        if args != ''
-          URI.escape "#{@instance}#{path}?#{args}"
-        else
-          "#{@instance}#{path}"
-        end
+    ##
+    # Build a url from the given path and url args
+    def build_url(path, options={})
+      opts = options.reject do |key, val|
+        [:body, :mime].include? key
       end
-      
-      ##
-      # Build the payload from the options hash
-      def build_payload(options)
-        payload = options.reject {|k,v| !([:body, :mime].include? k)}
-        if payload[:mime]
-          # user set mime-type, let them deal with it :)
-          # fix for ruby 1.8
-          if payload[:body].is_a? File
-            payload[:size] = payload[:body].path.size
-          else
-            payload[:size] = payload[:body].size
+      args = opts.inject([]) do |arr, (key, val)|
+        if key == :tags
+          # dealing with tag list
+          val.each do |tag|
+            arr << "tag=#{tag}"
           end
-          payload
-        elsif ITERABLE_TYPES.include? payload[:body].class
-          payload[:body] = JSON.dump payload[:body]
-          payload[:mime] = "application/json"
-          payload
-        elsif SERIALIZABLE_TYPES.include? payload[:body].class
-          payload[:body] = JSON.dump payload[:body]
-          payload[:mime] = "application/vnd.fluiddb.value+json"
-          payload
         else
-          raise TypeError, "You must supply the mime-type"
+          arr << "#{key}=#{val}"
         end
+      arr
+      end.join('&')
+      if args != ''
+        URI.escape "#{@instance}#{path}?#{args}"
+      else
+        "#{@instance}#{path}"
       end
+    end
+
+    ##
+    # Build the payload from the options hash
+    def build_payload(options)
+      payload = options.reject {|k,v| !([:body, :mime].include? k)}
+      if payload[:mime]
+        # user set mime-type, let them deal with it :)
+        # fix for ruby 1.8
+        if payload[:body].is_a? File
+          payload[:size] = payload[:body].path.size
+        else
+          payload[:size] = payload[:body].size
+        end
+        payload
+      elsif ITERABLE_TYPES.include? payload[:body].class
+        payload[:body] = JSON.dump payload[:body]
+        payload[:mime] = "application/json"
+        payload
+      elsif SERIALIZABLE_TYPES.include? payload[:body].class
+        payload[:body] = JSON.dump payload[:body]
+        payload[:mime] = "application/vnd.fluiddb.value+json"
+        payload
+      else
+        raise TypeError, "You must supply the mime-type"
+      end
+    end
   end
-  
+
   def self.version
     # This was borrowed from the rest-client gem :)
     version_path = File.dirname(__FILE__) + "/../VERSION"
