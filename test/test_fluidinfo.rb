@@ -123,7 +123,7 @@ class FluidinfoTest < Test::Unit::TestCase
     end
 
     context "/tags" do
-      should "update tag values" do
+      should "update primitive tag values" do
         new_ns = UUIDTools::UUID.random_create
         ns_body = {
           'description' => 'a test namespace',
@@ -153,6 +153,40 @@ class FluidinfoTest < Test::Unit::TestCase
         # now cleanup
         @fluid.delete "/tags/test/#{new_ns}/#{new_tag}"
         @fluid.delete "/namespaces/test/#{new_ns}"
+      end
+
+      should "update opaque tag values" do
+        new_ns = UUIDTools::UUID.random_create
+        ns_body = {
+          'description' => 'a test namespace',
+          'name' => new_ns
+        }
+        resp = @fluid.post '/namespaces/test', :body => ns_body
+        assert_not_nil resp["id"]
+        ns_id = resp["id"]      # for later use
+
+        new_tag = UUIDTools::UUID.random_create
+        tag_body = {
+          'description' => 'a test tag',
+          'name' => new_tag,
+          'indexed' => false
+        }
+        resp = @fluid.post "/tags/test/#{new_ns}", :body => tag_body
+        file = File.new(__FILE__)
+        path = "/objects/#{ns_id}/test/#{new_ns}/#{new_tag}"
+        resp = @fluid.put path, :body => file, :mime => "text/ruby"
+        assert_equal File.new(__FILE__).read, @fluid.get(path)
+
+        # now cleanup
+        @fluid.delete "/tags/test/#{new_ns}/#{new_tag}"
+        @fluid.delete "/namespaces/test/#{new_ns}"
+      end
+
+      should "raise TypeError on malformed request" do
+        file = File.new(__FILE__)
+        assert_raise TypeError do
+          @fluid.put("/objects", :body => file)
+        end
       end
     end
   end

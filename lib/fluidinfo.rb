@@ -44,7 +44,11 @@ module Fluidinfo
     def get(path, options={})
       url = build_url path, options
       response = RestClient.get url, @headers
-      JSON.parse response
+      if ['application/json', 'application/vnd.fluiddb.value+json'].include? response.headers[:content_type]
+        JSON.parse response
+      else
+        response
+      end
     end
 
     ##
@@ -80,7 +84,7 @@ module Fluidinfo
     def put(path, options={})
       url = build_url path, options
       payload = build_payload options
-      headers = @headers.merge :content_type => payload[:mime]
+      headers = @headers.merge :content_type => payload[:mime], :content_length => payload[:size]
       RestClient.put url, payload[:body], headers
     end
 
@@ -127,6 +131,12 @@ module Fluidinfo
         payload = options.reject {|k,v| !([:body, :mime].include? k)}
         if payload[:mime]
           # user set mime-type, let them deal with it :)
+          # fix for ruby 1.8
+          if payload[:body].is_a? File
+            payload[:size] = payload[:body].path.size
+          else
+            payload[:size] = payload[:body].size
+          end
           payload
         elsif ITERABLE_TYPES.include? payload[:body].class
           payload[:body] = JSON.dump payload[:body]
