@@ -5,12 +5,12 @@ require "base64"
 require "set"
 
 module Fluidinfo
-  ITERABLE_TYPES     = Set.new [Array, Hash]
-  SERIALIZABLE_TYPES = Set.new [NilClass, String, Fixnum, Float, Symbol,
-                                TrueClass, FalseClass]
-  JSON_TYPES         = Set.new ["application/json",
-                                "application/vnd.fluiddb.value+json"]
-  
+  ITERABLE_TYPES      = Set.new [Array]
+  SERIALIZEABLE_TYPES = Set.new [NilClass, String, Fixnum, Float, Symbol,
+                                 TrueClass, FalseClass, Array]
+  JSON_TYPES          = Set.new ["application/json",
+                                 "application/vnd.fluiddb.value+json"]
+
   class Client
     # The main fluidinfo instance.
     @@MAIN    = 'https://fluiddb.fluidinfo.com'
@@ -24,13 +24,14 @@ module Fluidinfo
         @instance = @@MAIN
       end
       @headers = {
-        :accept => "*/*"
+        :accept => "*/*",
+        :user_agent => "fluidinfo.rb/#{Fluidinfo.version}"
       }
     end
 
     def login(user, pass)
-      auth = "Basic " + (Base64.encode64 "#{user}:#{pass}").strip
-      @headers[:authorization] = auth
+      @headers[:authorization] = "Basic " + 
+        (Base64.encode64 "#{user}:#{pass}").strip
     end
 
     def logout
@@ -58,7 +59,7 @@ module Fluidinfo
     # of a tag
     def head(path)
       path = @instance + path
-      RestClient.head path
+      RestClient.head path, @headers
     end
 
     ##
@@ -73,7 +74,7 @@ module Fluidinfo
         headers = @headers.merge :content_type => payload[:mime]
         JSON.parse(RestClient.post path, payload[:body], headers)
       else
-        JSON.parse(RestClient.post path, nil)
+        JSON.parse(RestClient.post path, nil, @headers)
       end
     end
 
@@ -82,7 +83,8 @@ module Fluidinfo
     #
     # +options[:body]+ contains the request payload.
     #
-    # +options[:mime]+ contains the MIME-type unless the payload is JSON-encodable
+    # +options[:mime]+ contains the MIME-type unless the payload is 
+    # JSON-encodable
     def put(path, options={})
       url = build_url path, options
       payload = build_payload options
@@ -95,8 +97,8 @@ module Fluidinfo
     # Call DELETE on one of the APIs
     #
     # +options+ contains URI arguments that will be appended to +path+
-    # consult the {Fluidinfo API documentation}[api.fluidinfo.com] for a list of
-    # appropriate options
+    # consult the {Fluidinfo API documentation}[api.fluidinfo.com] for a list 
+    # of appropriate options
     def delete(path, options={})
       url = build_url path, options
       # nothing returned in response body for DELETE
@@ -140,18 +142,34 @@ module Fluidinfo
         else
           payload[:size] = payload[:body].size
         end
-        payload
-      elsif ITERABLE_TYPES.include? payload[:body].class
+      elsif payload[:body].is_a? Hash
         payload[:body] = JSON.dump payload[:body]
         payload[:mime] = "application/json"
-        payload
-      elsif SERIALIZABLE_TYPES.include? payload[:body].class
+      elsif SERIALIZEABLE_TYPES.include? payload[:body].class
+        if ITERABLE_TYPES.include? payload[:body].class
+          if is_set_of_strings? payload[:body]
+            # set of strings is primitive
+            payload[:mime] = "application/vnd.fluiddb.value+json"
+          else
+            # we have an Array with some non-String items
+            payload[:mime] = "application/json"
+          end
+        else
+          # primitive type
+          payload[:mime] = "application/vnd.fluiddb.value+json"
+        end
         payload[:body] = JSON.dump payload[:body]
-        payload[:mime] = "application/vnd.fluiddb.value+json"
-        payload
       else
         raise TypeError, "You must supply the mime-type"
       end
+      payload
+    end
+    
+    ##
+    # Check if payload is a "set of strings"
+    def is_set_of_strings?(list)
+      # are all elements unique strings?
+      list.all? { |x| x.is_a? String } && list == list.uniq
     end
   end
 

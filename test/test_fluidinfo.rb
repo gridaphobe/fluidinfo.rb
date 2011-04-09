@@ -151,8 +151,11 @@ class FluidinfoTest < Test::Unit::TestCase
         end
 
         # now cleanup
-        @fluid.delete "/tags/test/#{new_ns}/#{new_tag}"
-        @fluid.delete "/namespaces/test/#{new_ns}"
+        response = @fluid.delete "/tags/test/#{new_ns}/#{new_tag}"
+        assert_equal 204, response.code
+      
+        response = @fluid.delete "/namespaces/test/#{new_ns}"
+        assert_equal 204, response.code
       end
 
       should "update opaque tag values" do
@@ -186,6 +189,31 @@ class FluidinfoTest < Test::Unit::TestCase
         file = File.new(__FILE__)
         assert_raise TypeError do
           @fluid.put("/objects", :body => file)
+        end
+      end
+    end
+  end
+  
+  context "private functions" do
+    setup do
+      @fluid = Fluidinfo::Client.new
+      def @fluid.test_build_payload(*args)
+        build_payload(*args)
+      end
+    end
+    
+    context "build_payload" do
+      should "set proper mime-types" do
+        primitives = [1, 1.1, true, false, nil, ["1", "2", "hi"]]
+        primitives.each do |p|
+          h = @fluid.test_build_payload :body => p
+          assert_equal "application/vnd.fluiddb.value+json", h[:mime]
+        end
+        
+        non_primitives = [[1, 2, 3], {"hi" => "there"}]
+        non_primitives.each do |n|
+          h = @fluid.test_build_payload :body => n
+          assert_equal "application/json", h[:mime]
         end
       end
     end
