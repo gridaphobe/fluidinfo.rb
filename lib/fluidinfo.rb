@@ -1,5 +1,6 @@
 require "rest-client"
 require "uri"
+require "cgi"
 require "yajl/json_gem"
 require "base64"
 require "set"
@@ -13,15 +14,15 @@ module Fluidinfo
 
   class Client
     # The main fluidinfo instance.
-    @@MAIN    = 'https://fluiddb.fluidinfo.com'
+    MAIN    = 'https://fluiddb.fluidinfo.com'
     # The sandbox instance, test your code here.
-    @@SANDBOX = 'https://sandbox.fluidinfo.com'
+    SANDBOX = 'https://sandbox.fluidinfo.com'
 
     def initialize(instance=:main)
       if instance == :sandbox
-        @instance = @@SANDBOX
+        @instance = SANDBOX
       else
-        @instance = @@MAIN
+        @instance = MAIN
       end
       @headers = {
         :accept => "*/*",
@@ -119,12 +120,17 @@ module Fluidinfo
             arr << "tag=#{tag}"
           end
         else
-          arr << "#{key}=#{val}"
+          arr << "#{key}=#{CGI.escape val.to_s}"
         end
-      arr
+        arr
       end.join('&')
+      # fix for /about API
+      if path.start_with? '/about/'
+        about = path[7..-1]
+        path = "/about/#{CGI.escape about}"
+      end
       if args != ''
-        URI.escape "#{@instance}#{path}?#{args}"
+        "#{@instance}#{path}?#{args}"
       else
         "#{@instance}#{path}"
       end

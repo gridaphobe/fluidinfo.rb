@@ -175,7 +175,7 @@ class FluidinfoTest < Test::Unit::TestCase
           'indexed' => false
         }
         resp = @fluid.post "/tags/test/#{new_ns}", :body => tag_body
-        file = File.new(__FILE__)
+        file = File.new(__FILE__).read
         path = "/objects/#{ns_id}/test/#{new_ns}/#{new_tag}"
         resp = @fluid.put path, :body => file, :mime => "text/ruby"
         assert_equal File.new(__FILE__).read, @fluid.get(path)
@@ -200,8 +200,29 @@ class FluidinfoTest < Test::Unit::TestCase
       def @fluid.test_build_payload(*args)
         build_payload(*args)
       end
+      def @fluid.test_build_url(*args)
+        build_url(*args)
+      end
     end
     
+    context "build_url" do
+      should "escape &'s in query tag-values" do
+        query = "test/tag=\"1&2\""
+        assert_equal "https://fluiddb.fluidinfo.com/objects?query=test%2Ftag%3D%221%262%22",
+          @fluid.test_build_url("/objects", :query => query)
+        query = "oreilly.com/title=\"HTML & CSS: The Good Parts\""
+        tags = ["oreilly.com/isbn"]
+        assert_equal "https://fluiddb.fluidinfo.com/values?query=oreilly.com%2Ftitle%3D%22HTML+%26+CSS%3A+The+Good+Parts%22&tag=oreilly.com/isbn",
+          @fluid.test_build_url("/values", :query => query, :tags => tags)
+      end
+
+      should "escape &'s in about-values" do
+        about = "tom & jerry"
+        assert_equal "https://fluiddb.fluidinfo.com/about/tom+%26+jerry",
+          @fluid.test_build_url('/about/tom & jerry')
+      end
+    end
+
     context "build_payload" do
       should "set proper mime-types" do
         primitives = [1, 1.1, true, false, nil, ["1", "2", "hi"]]
