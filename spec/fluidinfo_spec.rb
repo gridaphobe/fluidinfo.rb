@@ -117,9 +117,9 @@ describe Fluidinfo do
           'description' => 'a test namespace',
           'name'        => new_ns
         }
-        resp = @fluid.post "/namespaces/test", :body => body
-        resp.status.should eq(201)
-        resp["id"].should_not be_nil
+        r = @fluid.post "/namespaces/test", :body => body
+        r.status.should eq(201)
+        r["id"].should_not be_nil
 
         # now cleanup
         @fluid.delete "/namespaces/test/#{new_ns}"
@@ -146,8 +146,8 @@ describe Fluidinfo do
           'description' => 'a test namespace',
           'name' => new_ns
         }
-        resp = @fluid.post '/namespaces/test', :body => ns_body
-        resp["id"].should_not be_nil
+        r = @fluid.post '/namespaces/test', :body => ns_body
+        r["id"].should_not be_nil
 
         ns_id = resp["id"]      # for later use
         new_tag = UUIDTools::UUID.random_create
@@ -156,24 +156,24 @@ describe Fluidinfo do
           'name' => new_tag,
           'indexed' => false
         }
-        resp = @fluid.post "/tags/test/#{new_ns}", :body => tag_body
-        resp["id"].should_not be_nil
+        r = @fluid.post "/tags/test/#{new_ns}", :body => tag_body
+        r["id"].should_not be_nil
 
         path = "/objects/#{ns_id}/test/#{new_ns}/#{new_tag}"
         # Make sure that all primitive values are properly encoded and
         # sent to Fluidinfo
         primitives = [1, 1.1, "foo", true, nil, [1, '2', 3]]
         primitives.each do |p|
-          resp = @fluid.put(path, :body => p)
+          @fluid.put(path, :body => p)
           @fluid.get(path).value.should eq(p)
         end
 
         # now cleanup
-        response = @fluid.delete "/tags/test/#{new_ns}/#{new_tag}"
-        response.status.should eq(204)
+        r = @fluid.delete "/tags/test/#{new_ns}/#{new_tag}"
+        r.status.should eq(204)
 
-        response = @fluid.delete "/namespaces/test/#{new_ns}"
-        response.status.should eq(204)
+        r = @fluid.delete "/namespaces/test/#{new_ns}"
+        r.status.should eq(204)
       end
 
       it "should update opaque tag values" do
@@ -182,8 +182,8 @@ describe Fluidinfo do
           'description' => 'a test namespace',
           'name' => new_ns
         }
-        resp = @fluid.post '/namespaces/test', :body => ns_body
-        resp["id"].should_not be_nil
+        r = @fluid.post '/namespaces/test', :body => ns_body
+        r["id"].should_not be_nil
 
         ns_id = resp["id"]      # for later use
         new_tag = UUIDTools::UUID.random_create
@@ -192,10 +192,10 @@ describe Fluidinfo do
           'name' => new_tag,
           'indexed' => false
         }
-        resp = @fluid.post "/tags/test/#{new_ns}", :body => tag_body
+        @fluid.post "/tags/test/#{new_ns}", :body => tag_body
         file = File.new(__FILE__).read
         path = "/objects/#{ns_id}/test/#{new_ns}/#{new_tag}"
-        resp = @fluid.put path, :body => file, :mime => "text/ruby"
+        @fluid.put path, :body => file, :mime => "text/ruby"
         File.new(__FILE__).read.should eq(@fluid.get(path).value)
 
         # now cleanup
