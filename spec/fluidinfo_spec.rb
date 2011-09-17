@@ -10,8 +10,9 @@ describe Fluidinfo do
     it "should return a Fluidinfo::Response" do
       r = @fluid.get("/about/fluidinfo")
       r.should be_a(Fluidinfo::Response)
+      r.should respond_to(:status, :content, :headers, :value, :response)
     end
-    
+
     describe "/objects" do
       it "should retrieve tags correctly" do
         uid = "e034d8c0-a2e4-4094-895b-3a8065f9696e"
@@ -36,7 +37,7 @@ describe Fluidinfo do
         @fluid.get("/objects/#{uid}",
                    :showAbout => true).value.should eq(expected)
       end
-      
+
       it "should retrieve objects without about tag" do
         uid = "206b5ca5-cd69-469a-9aba-44b28cfb455e"
         expected = {
@@ -44,7 +45,7 @@ describe Fluidinfo do
         }
         @fluid.get("/objects/#{uid}").value.should eq(expected)
       end
-      
+
       it "should raise 404 errors on bad request" do
         uid = "1"
         tag = "gridaphobe/given-name"
@@ -77,7 +78,7 @@ describe Fluidinfo do
                    :returnNamespaces => true).value.should eq(expected)
       end
     end
-    
+
     describe "/values" do
       it "should retrieve a set of tags" do
         expected = {
@@ -104,6 +105,12 @@ describe Fluidinfo do
       @fluid.login 'test', 'test'
     end
 
+    it "should return a Fluidinfo::Response" do
+      r = @fluid.post("/objects")
+      r.should be_a(Fluidinfo::Response)
+      r.should respond_to(:status, :content, :headers, :value, :response)
+    end
+
     describe "/namespaces" do
       it "should create new namespaces" do
         new_ns = UUIDTools::UUID.random_create
@@ -114,7 +121,7 @@ describe Fluidinfo do
         resp = @fluid.post "/namespaces/test", :body => body
         resp.status.should eq(201)
         resp["id"].should_not be_nil
-        
+
         # now cleanup
         @fluid.delete "/namespaces/test/#{new_ns}"
       end
@@ -127,6 +134,13 @@ describe Fluidinfo do
       @fluid.login 'test', 'test'
     end
 
+    it "should return a Fluidinfo::Response" do
+      r = @fluid.put("/about/fluidinfo/test/tag", :body => nil)
+      r.should be_a(Fluidinfo::Response)
+      r.should respond_to(:status, :content, :headers, :value, :response)
+      @fluid.delete("/about/fluidinfo/test/tag")
+    end
+
     describe "/tags" do
       it "should update primitive tag values" do
         new_ns = UUIDTools::UUID.random_create
@@ -136,7 +150,7 @@ describe Fluidinfo do
         }
         resp = @fluid.post '/namespaces/test', :body => ns_body
         resp["id"].should_not be_nil
-        
+
         ns_id = resp["id"]      # for later use
         new_tag = UUIDTools::UUID.random_create
         tag_body = {
@@ -146,7 +160,7 @@ describe Fluidinfo do
         }
         resp = @fluid.post "/tags/test/#{new_ns}", :body => tag_body
         resp["id"].should_not be_nil
-        
+
         path = "/objects/#{ns_id}/test/#{new_ns}/#{new_tag}"
         # Make sure that all primitive values are properly encoded and
         # sent to Fluidinfo
@@ -159,7 +173,7 @@ describe Fluidinfo do
         # now cleanup
         response = @fluid.delete "/tags/test/#{new_ns}/#{new_tag}"
         response.status.should eq(204)
-      
+
         response = @fluid.delete "/namespaces/test/#{new_ns}"
         response.status.should eq(204)
       end
@@ -172,7 +186,7 @@ describe Fluidinfo do
         }
         resp = @fluid.post '/namespaces/test', :body => ns_body
         resp["id"].should_not be_nil
-        
+
         ns_id = resp["id"]      # for later use
         new_tag = UUIDTools::UUID.random_create
         tag_body = {
@@ -197,7 +211,7 @@ describe Fluidinfo do
       end
     end
   end
-  
+
   describe "private functions" do
     before(:each) do
       @fluid = Fluidinfo::Client.new
@@ -208,7 +222,7 @@ describe Fluidinfo do
         build_url(*args)
       end
     end
-    
+
     describe "build_url" do
       it "escapes &'s in query tag-values" do
         query = "test/tag=\"1&2\""
@@ -237,7 +251,7 @@ describe Fluidinfo do
           h = @fluid.test_build_payload :body => p
           h[:mime].should eq("application/vnd.fluiddb.value+json")
         end
-        
+
         non_primitives = [[1, 2, 3], {"hi" => "there"}]
         non_primitives.each do |n|
           h = @fluid.test_build_payload :body => n

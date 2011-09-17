@@ -21,6 +21,7 @@ GEM
     rspec-mocks (2.6.0)
     uuidtools (2.1.2)
     yajl-ruby (1.0.0)
+    yard (0.7.2)
 
 PLATFORMS
   ruby
@@ -33,3 +34,4 @@ DEPENDENCIES
   rspec (~> 2.6.0)
   uuidtools (~> 2.1.2)
   yajl-ruby (~> 1.0.0)
+  yard (~> 0.7.2)

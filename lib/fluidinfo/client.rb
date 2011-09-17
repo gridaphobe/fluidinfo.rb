@@ -120,8 +120,7 @@ module Fluidinfo
       end.join('&')
       # fix for /about API
       if path.start_with? '/about/'
-        about = path[7..-1]
-        path = "/about/#{CGI.escape about}"
+        path = path.split("/").map{|x| CGI.escape x}.join("/")
       end
       if args != ''
         "#{@instance}#{path}?#{args}"
@@ -175,7 +174,7 @@ module Fluidinfo
 
   def self.version
     # This was borrowed from the rest-client gem :)
-    version_path = File.dirname(__FILE__) + "/../VERSION"
+    version_path = File.dirname(__FILE__) + "/../../VERSION"
     return File.read(version_path).chomp if File.file?(version_path)
     "0.0.0"
   end
