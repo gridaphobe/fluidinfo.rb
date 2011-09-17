@@ -10,32 +10,19 @@ module Fluidinfo
                                  TrueClass, FalseClass, Array]
   JSON_TYPES          = Set.new ["application/json",
                                  "application/vnd.fluiddb.value+json"]
+  # The main fluidinfo instance.
+  MAIN = 'https://fluiddb.fluidinfo.com'
 
   class Client
-    # The main fluidinfo instance.
-    MAIN    = 'https://fluiddb.fluidinfo.com'
-    # The sandbox instance, test your code here.
-    SANDBOX = 'https://sandbox.fluidinfo.com'
-
-    def initialize(instance=:main)
-      if instance == :sandbox
-        @instance = SANDBOX
-      else
-        @instance = MAIN
-      end
-      @headers = {
+    def initialize(options={})
+      base_url = options[:instance] || Fluidinfo::MAIN
+      headers = {
         :accept => "*/*",
         :user_agent => "fluidinfo.rb/#{Fluidinfo.version}"
       }
-    end
-
-    def login(user, pass)
-      @headers[:authorization] = "Basic " + 
-        (Base64.encode64 "#{user}:#{pass}").strip
-    end
-
-    def logout
-      @headers.delete :authorization
+      @client = RestClient::Resource.new base_url, :user => options[:user],
+                                                   :password => options[:password],
+                                                   :headers => headers
     end
 
     ##
@@ -46,15 +33,17 @@ module Fluidinfo
     # appropriate options
     def get(path, options={})
       url = build_url path, options
-      Response.new(RestClient.get url, @headers)
+      headers = options[:headers] || {}
+      Response.new(@client[url].get headers)
     end
 
     ##
     # Call HEAD on the /about or /object API to test for the existence
     # of a tag
-    def head(path)
-      path = @instance + path
-      Response.new(RestClient.head path, @headers)
+    def head(path, options={})
+      url = build_url path, options
+      headers = options[:headers] || {}
+      Response.new(@client[url].head headers)
     end
 
     ##
@@ -63,14 +52,16 @@ module Fluidinfo
     # +options[:body]+ contains the request payload. For some API
     # calls this may be empty.
     def post(path, options={})
-      path = @instance + path
-      if options[:body]
-        payload = build_payload options
-        headers = @headers.merge :content_type => payload[:mime]
-        Response.new(RestClient.post path, payload[:body], headers)
-      else
-        Response.new(RestClient.post path, nil, @headers)
+      url = build_url path, options
+      body = options[:body]
+      headers = options[:headers] || {}
+      if body
+        # the body for a POST will always be app/json, so no need
+        # to waste cycles in build_payload
+        body = Yajl.dump body
+        headers.merge! :content_type => "application/json"
       end
+      Response.new(@client[url].post body, headers)
     end
 
     ##
@@ -82,10 +73,10 @@ module Fluidinfo
     # JSON-encodable
     def put(path, options={})
       url = build_url path, options
-      payload = build_payload options
-      headers = @headers.merge(:content_type   => payload[:mime],
-                               :content_length => payload[:size])
-      Response.new(RestClient.put url, payload[:body], headers)
+      body, mime = build_payload options
+      headers = (options[:headers] || {}).merge :content_type => mime
+                                               # :content_length => size
+      Response.new(@client[url].put body, headers)
     end
 
     ##
@@ -96,8 +87,9 @@ module Fluidinfo
     # of appropriate options
     def delete(path, options={})
       url = build_url path, options
+      headers = options[:headers] || {}
       # nothing returned in response body for DELETE
-      Response.new(RestClient.delete url, @headers)
+      Response.new(@client[url].delete headers)
     end
 
     private
@@ -123,45 +115,46 @@ module Fluidinfo
         path = path.split("/").map{|x| CGI.escape x}.join("/")
       end
       if args != ''
-        "#{@instance}#{path}?#{args}"
+        "#{path}?#{args}"
       else
-        "#{@instance}#{path}"
+        "#{path}"
       end
     end
 
     ##
     # Build the payload from the options hash
     def build_payload(options)
-      payload = options.reject {|k,v| !([:body, :mime].include? k)}
-      if payload[:mime]
+      body = options[:body]
+      mime = options[:mime]
+      if mime
         # user set mime-type, let them deal with it :)
         # fix for ruby 1.8
-        if payload[:body].is_a? File
-          payload[:size] = payload[:body].path.size
+        if body.is_a? File
+          size = body.path.size
         else
-          payload[:size] = payload[:body].size
+          size = body.size
         end
-      elsif payload[:body].is_a? Hash
-        payload[:body] = Yajl.dump payload[:body]
-        payload[:mime] = "application/json"
-      elsif SERIALIZEABLE_TYPES.include? payload[:body].class
-        if ITERABLE_TYPES.include? payload[:body].class
-          if is_set_of_strings? payload[:body]
+      elsif body.is_a? Hash
+        body = Yajl.dump body
+        mime = "application/json"
+      elsif SERIALIZEABLE_TYPES.include? body.class
+        if ITERABLE_TYPES.include? body.class
+          if is_set_of_strings? body
             # set of strings is primitive
-            payload[:mime] = "application/vnd.fluiddb.value+json"
+            mime = "application/vnd.fluiddb.value+json"
           else
             # we have an Array with some non-String items
-            payload[:mime] = "application/json"
+            mime = "application/json"
           end
         else
           # primitive type
-          payload[:mime] = "application/vnd.fluiddb.value+json"
+          mime = "application/vnd.fluiddb.value+json"
         end
-        payload[:body] = Yajl.dump payload[:body]
+        body = Yajl.dump body
       else
         raise TypeError, "You must supply the mime-type"
       end
-      payload
+      [body, mime]
     end
     
     ##

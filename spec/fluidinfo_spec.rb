@@ -101,8 +101,7 @@ describe Fluidinfo do
 
   describe "POST" do
     before(:each) do
-      @fluid = Fluidinfo::Client.new
-      @fluid.login 'test', 'test'
+      @fluid = Fluidinfo::Client.new :user => "test", :password => "test"
     end
 
     it "should return a Fluidinfo::Response" do
@@ -130,8 +129,7 @@ describe Fluidinfo do
 
   describe "PUT" do
     before(:each) do
-      @fluid = Fluidinfo::Client.new
-      @fluid.login 'test', 'test'
+      @fluid = Fluidinfo::Client.new :user => "test", :password => "test"
     end
 
     it "should return a Fluidinfo::Response" do
@@ -226,12 +224,12 @@ describe Fluidinfo do
     describe "build_url" do
       it "escapes &'s in query tag-values" do
         query = "test/tag=\"1&2\""
-        expected = "https://fluiddb.fluidinfo.com/objects?query=test%2Ftag%3D%221%262%22"
+        expected = "/objects?query=test%2Ftag%3D%221%262%22"
         @fluid.test_build_url("/objects", :query => query).should eq(expected)
 
         query = "oreilly.com/title=\"HTML & CSS: The Good Parts\""
         tags = ["oreilly.com/isbn"]
-        expected = "https://fluiddb.fluidinfo.com/values?query=oreilly.com%2Ftitle%3D%22HTML+%26+CSS%3A+The+Good+Parts%22&tag=oreilly.com/isbn"
+        expected = "/values?query=oreilly.com%2Ftitle%3D%22HTML+%26+CSS%3A+The+Good+Parts%22&tag=oreilly.com/isbn"
         @fluid.test_build_url("/values",
                               :query => query,
                               :tags => tags).should eq(expected)
@@ -239,7 +237,7 @@ describe Fluidinfo do
 
       it "escapes &'s in about-values" do
         about = "tom & jerry"
-        expected = "https://fluiddb.fluidinfo.com/about/tom+%26+jerry"
+        expected = "/about/tom+%26+jerry"
         @fluid.test_build_url('/about/tom & jerry').should eq(expected)
       end
     end
@@ -248,14 +246,14 @@ describe Fluidinfo do
       it "sets proper mime-types" do
         primitives = [1, 1.1, true, false, nil, ["1", "2", "hi"]]
         primitives.each do |p|
-          h = @fluid.test_build_payload :body => p
-          h[:mime].should eq("application/vnd.fluiddb.value+json")
+          body, mime = @fluid.test_build_payload :body => p
+          mime.should eq("application/vnd.fluiddb.value+json")
         end
 
         non_primitives = [[1, 2, 3], {"hi" => "there"}]
         non_primitives.each do |n|
-          h = @fluid.test_build_payload :body => n
-          h[:mime].should eq("application/json")
+          body, mime = @fluid.test_build_payload :body => n
+          mime.should eq("application/json")
         end
       end
     end
