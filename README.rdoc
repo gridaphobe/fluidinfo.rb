@@ -1,35 +1,41 @@
-= fluidinfo
+= fluidinfo.rb
 
-Fluidinfo.rb provides a simple interface to fluidinfo.
++fluidinfo.rb+ provides a simple interface to {Fluidinfo}[http://www.fluidinfo.com].
 
 == Simple Example
 
- >> require 'fluidinfo'
- >> fluid = Fluidinfo::Client.new
- >> fluid.get '/objects', :query => 'has gridaphobe/met'
+ >> require "fluidinfo"
+ >> fi = Fluidinfo::Client.new
+ >> fi.get "/objects", :query => "has gridaphobe/met"
  => {"ids"=>["fa0bb30b-d1c2-4438-b65c-d86bbb1a44cd"]}
 
-For now, check out Fluidinfo's extensive 
-{documentation}[http://api.fluidinfo.com/] for explanations of each API call.
+== Authentication
 
+ >> fi = Fluidinfo::Client.new :user => "user", :password => "password"
+ >> fi.post "/objects", :body => {:about => "Pulp Fiction"}
+ >> fi.put "/about/Pulp Fiction/user/rating", :body => 5
 
-== Contributing to fluidinfo
++fluidinfo.rb+ is a wrapper around the
+{RestClient}[http://github.com/archiloque/rest-client] gem, and provides a
+similar API. For more details read the {official documentation}[http://rdoc.info/github/gridaphobe/fluidinfo.rb/frames].
 
-* Check out the latest master to make sure the feature hasn't been implemented 
+== Contributing to fluidinfo.rb
+
+* Check out the latest master to make sure the feature hasn't been implemented
   or the bug hasn't been fixed yet
-* Check out the issue tracker to make sure someone already hasn't requested it 
+* Check out the issue tracker to make sure someone already hasn't requested it
   and/or contributed it
 * Fork the project
 * Start a feature/bugfix branch
 * Commit and push until you are happy with your contribution
-* Make sure to add tests for it. This is important so I don't break it in a 
+* Make sure to add tests for it. This is important so I don't break it in a
   future version unintentionally.
-* Please try not to mess with the Rakefile, version, or history. If you want 
-  to have your own version, or is otherwise necessary, that is fine, but please 
+* Please try not to mess with the Rakefile, version, or history. If you want
+  to have your own version, or is otherwise necessary, that is fine, but please
   isolate to its own commit so I can cherry-pick around it.
 
 == Copyright
 
-Copyright (c) 2011 Eric Seidel. See LICENSE.txt for
+Copyright (c) 2011 Eric Seidel. See {file:LICENSE.txt} for
 further details.
 

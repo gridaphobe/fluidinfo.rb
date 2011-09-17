@@ -237,7 +237,7 @@ describe Fluidinfo do
 
       it "escapes &'s in about-values" do
         about = "tom & jerry"
-        expected = "/about/tom+%26+jerry"
+        expected = "/about/tom%20&%20jerry"
         @fluid.test_build_url('/about/tom & jerry').should eq(expected)
       end
     end

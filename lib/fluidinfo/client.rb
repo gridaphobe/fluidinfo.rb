@@ -1,36 +1,60 @@
 require "rest-client"
 require "cgi"
+require "uri"
 require "yajl"
 require "base64"
-require "set"
 
 module Fluidinfo
-  ITERABLE_TYPES      = Set.new [Array]
-  SERIALIZEABLE_TYPES = Set.new [NilClass, String, Fixnum, Float, Symbol,
-                                 TrueClass, FalseClass, Array]
-  JSON_TYPES          = Set.new ["application/json",
-                                 "application/vnd.fluiddb.value+json"]
-  # The main fluidinfo instance.
-  MAIN = 'https://fluiddb.fluidinfo.com'
 
+  ##
+  # {Fluidinfo::Client} handles all of the communication between your
+  # application and Fluidinfo. You should create a new
+  # {Fluidinfo::Client} anytime you want to begin making calls as a
+  # different user. All {Fluidinfo::Client} methods return an instance
+  # of {Fluidinfo::Response}.
+  #
+  # Example Usage:
+  #     # start with anonymous calls
+  #     fi = Fluidinfo::Client.new
+  #     fi.get "/values", :query => "has terry/rating > 4 and eric/seen",
+  #                       :tags  => ["imdb.com/title", "amazon.com/price"]
+  #     # now log in
+  #     fi = Fluidinfo::Client.new :user => "user", :password => "password"
+  #     fi.put "/about/Inception/user/comment", :body => "Awesome!"
   class Client
+
+    ##
+    # Create a new instance of {Fluidinfo::Client}.
+    #
+    # @param [Hash] options Initialization options.
+    #
+    # @option options [String] :user The username to use for
+    #   authentication.
+    # @option options [String] :password The password to use for
+    #   authentication.
+    # @option options [Hash] :headers Additional headers to send with
+    #   every API call made via this client.
     def initialize(options={})
       base_url = options[:instance] || Fluidinfo::MAIN
       headers = {
         :accept => "*/*",
         :user_agent => "fluidinfo.rb/#{Fluidinfo.version}"
-      }
+      }.merge(options[:headers] || {})
       @client = RestClient::Resource.new base_url, :user => options[:user],
                                                    :password => options[:password],
                                                    :headers => headers
     end
 
     ##
-    # Call GET on one of the APIs
+    # Call GET on one of the APIs.
     #
-    # +options+ contains URI arguments that will be appended to +path+
-    # consult the {Fluidinfo API documentation}[api.fluidinfo.com] for a list of
-    # appropriate options
+    # @param [String] path The path segment of the API call.
+    # @param [Hash] options Additional arguments for the GET call.
+    #
+    # @option options [Hash] :headers Additional headers to send.
+    # @option options [String] :query A Fluidinfo query for objects, only used in
+    #   +/objects+ and +/values+.
+    # @option options [Array] :tags Tags to be deleted, only used in +/values+.
     def get(path, options={})
       url = build_url path, options
       headers = options[:headers] || {}
@@ -38,8 +62,13 @@ module Fluidinfo
     end
 
     ##
-    # Call HEAD on the /about or /object API to test for the existence
-    # of a tag
+    # Call HEAD on one of the APIs. Only used to check for the
+    # existence of a tag using +/about+ or +/objects+.
+    #
+    # @param [String] path The path segment of the API call.
+    # @param [Hash] options Additional arguments for the GET call.
+    #
+    # @option options [Hash] :headers Additional headers to send.
     def head(path, options={})
       url = build_url path, options
       headers = options[:headers] || {}
@@ -47,10 +76,13 @@ module Fluidinfo
     end
 
     ##
-    # Call POST on one of the APIs
+    # Call POST on one of the APIs.
     #
-    # +options[:body]+ contains the request payload. For some API
-    # calls this may be empty.
+    # @param [String] path The path segment of the API call.
+    # @param [Hash] options Additional arguments for the POST call.
+    #
+    # @option options [Hash] :headers Additional headers to send.
+    # @option options [Hash] :body The payload to send.
     def post(path, options={})
       url = build_url path, options
       body = options[:body]
@@ -65,26 +97,32 @@ module Fluidinfo
     end
 
     ##
-    # Call PUT on one of the APIs
+    # Call PUT on one of the APIs.
     #
-    # +options[:body]+ contains the request payload.
+    # @param [String] path The path segment of the API call.
+    # @param [Hash] options Additional arguments for the PUT call.
     #
-    # +options[:mime]+ contains the MIME-type unless the payload is 
-    # JSON-encodable
+    # @option options [Hash] :headers Additional headers to send.
+    # @option options [Hash, other] :body The payload to send. Type
+    #   should be +Hash+ unless sending a tag-value.
+    # @option options [String] :mime The mime-type of an opaque tag-value.
     def put(path, options={})
       url = build_url path, options
       body, mime = build_payload options
       headers = (options[:headers] || {}).merge :content_type => mime
-                                               # :content_length => size
       Response.new(@client[url].put body, headers)
     end
 
     ##
-    # Call DELETE on one of the APIs
+    # Call DELETE on one of the APIs.
     #
-    # +options+ contains URI arguments that will be appended to +path+
-    # consult the {Fluidinfo API documentation}[api.fluidinfo.com] for a list 
-    # of appropriate options
+    # @param [String] path The path segment of the API call.
+    # @param [Hash] options Additional arguments for the DELETE call.
+    #
+    # @option options [Hash] :headers Additional headers to send.
+    # @option options [String] :query A Fluidinfo query for objects, only used in
+    #   +/values+.
+    # @option options [Array] :tags Tags to be deleted, only used in +/values+.
     def delete(path, options={})
       url = build_url path, options
       headers = options[:headers] || {}
@@ -112,7 +150,9 @@ module Fluidinfo
       end.join('&')
       # fix for /about API
       if path.start_with? '/about/'
-        path = path.split("/").map{|x| CGI.escape x}.join("/")
+        # path components need to be escaped with URI.escape instead
+        # of CGI.escape so " " is translated properly to "%20"
+        path = path.split("/").map{|x| URI.escape x}.join("/")
       end
       if args != ''
         "#{path}?#{args}"
@@ -156,7 +196,7 @@ module Fluidinfo
       end
       [body, mime]
     end
-    
+
     ##
     # Check if payload is a "set of strings"
     def is_set_of_strings?(list)

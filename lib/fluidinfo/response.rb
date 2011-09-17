@@ -1,8 +1,20 @@
 require "yajl"
 
 module Fluidinfo
+
+  ##
+  # An instance of {Fluidinfo::Response} is returned by all of the
+  # {Fluidinfo::Client} calls. There's no reason to instantiate one
+  # yourself.
   class Response
-    attr_reader :status, :headers, :content, :value
+    # [Integer] The return code of the API call.
+    attr_reader :status
+    # [Hash] The returned headers.
+    attr_reader :headers
+    # [String, nil] The raw response
+    attr_reader :content
+    # [Hash, String] The parsed response if the +Content-Type+ was one of {Fluidinfo::JSON_TYPES}, otherwise equivalent to {#content}.
+    attr_reader :value
 
     def initialize(response)
       @status   = response.code
@@ -15,9 +27,11 @@ module Fluidinfo
                   end
     end
 
+    ##
+    # A shortcut for +Response.value#[]+.
     def [](key)
       @value[key]
     end
-    
+
   end
 end
