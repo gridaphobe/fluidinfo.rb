@@ -17,7 +17,7 @@
 
 +fluidinfo.rb+ is a wrapper around the
 {RestClient}[http://github.com/archiloque/rest-client] gem, and provides a
-similar API. For more details read the {official documentation}[http://rdoc.info/github/gridaphobe/fluidinfo.rb/frames].
+similar API. For more details read the {official documentation}[http://rdoc.info/gems/fluidinfo/frames].
 
 == Contributing to fluidinfo.rb
 
