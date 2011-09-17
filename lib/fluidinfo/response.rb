@@ -2,10 +2,9 @@ require "yajl"
 
 module Fluidinfo
   class Response
-    attr_reader :status, :headers, :content, :value, :response
+    attr_reader :status, :headers, :content, :value
 
     def initialize(response)
-      @response = response
       @status   = response.code
       @headers  = response.headers
       @content  = response.body

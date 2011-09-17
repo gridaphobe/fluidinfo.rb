@@ -10,7 +10,7 @@ describe Fluidinfo do
     it "should return a Fluidinfo::Response" do
       r = @fluid.get("/about/fluidinfo")
       r.should be_a(Fluidinfo::Response)
-      r.should respond_to(:status, :content, :headers, :value, :response)
+      r.should respond_to(:status, :content, :headers, :value)
     end
 
     describe "/objects" do
@@ -107,7 +107,7 @@ describe Fluidinfo do
     it "should return a Fluidinfo::Response" do
       r = @fluid.post("/objects")
       r.should be_a(Fluidinfo::Response)
-      r.should respond_to(:status, :content, :headers, :value, :response)
+      r.should respond_to(:status, :content, :headers, :value)
     end
 
     describe "/namespaces" do
@@ -135,7 +135,7 @@ describe Fluidinfo do
     it "should return a Fluidinfo::Response" do
       r = @fluid.put("/about/fluidinfo/test/tag", :body => nil)
       r.should be_a(Fluidinfo::Response)
-      r.should respond_to(:status, :content, :headers, :value, :response)
+      r.should respond_to(:status, :content, :headers, :value)
       @fluid.delete("/about/fluidinfo/test/tag")
     end
 
