@@ -15,10 +15,13 @@ module Fluidinfo
     attr_reader :content
     # [Hash, String] The parsed response if the +Content-Type+ was one of {Fluidinfo::JSON_TYPES}, otherwise equivalent to {#content}.
     attr_reader :value
+    # [String] The error, if any, returned by Fluidinfo
+    attr_reader :error
 
     def initialize(response)
       @status   = response.code
       @headers  = response.headers
+      @error    = @headers[:x_fluiddb_error_class]
       @content  = response.body
       @value    = if JSON_TYPES.include? @headers[:content_type]
                     Yajl.load @content

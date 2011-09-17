@@ -1,5 +1,5 @@
-require 'fluidinfo'
-require 'uuidtools'
+require "fluidinfo"
+require "uuidtools"
 
 describe Fluidinfo do
   describe "GET" do
@@ -10,7 +10,7 @@ describe Fluidinfo do
     it "should return a Fluidinfo::Response" do
       r = @fluid.get("/about/fluidinfo")
       r.should be_a(Fluidinfo::Response)
-      r.should respond_to(:status, :content, :headers, :value)
+      r.should respond_to(:status, :content, :headers, :value, :error)
     end
 
     describe "/objects" do
@@ -46,10 +46,10 @@ describe Fluidinfo do
         @fluid.get("/objects/#{uid}").value.should eq(expected)
       end
 
-      it "should raise 404 errors on bad request" do
-        uid = "1"
-        tag = "gridaphobe/given-name"
-        expect{@fluid.get "/objects/#{uid}/#{tag}"}.to raise_error(RestClient::ResourceNotFound)
+      it "should contain an error message for failed requests" do
+        r = @fluid.get "/about/1/gridaphobe/given-name"
+        r.status.should eq(404)
+        r.error.should eq("TNoInstanceOnObject")
       end
     end
 
@@ -107,7 +107,7 @@ describe Fluidinfo do
     it "should return a Fluidinfo::Response" do
       r = @fluid.post("/objects")
       r.should be_a(Fluidinfo::Response)
-      r.should respond_to(:status, :content, :headers, :value)
+      r.should respond_to(:status, :content, :headers, :value, :error)
     end
 
     describe "/namespaces" do
@@ -135,7 +135,7 @@ describe Fluidinfo do
     it "should return a Fluidinfo::Response" do
       r = @fluid.put("/about/fluidinfo/test/tag", :body => nil)
       r.should be_a(Fluidinfo::Response)
-      r.should respond_to(:status, :content, :headers, :value)
+      r.should respond_to(:status, :content, :headers, :value, :error)
       @fluid.delete("/about/fluidinfo/test/tag")
     end
 

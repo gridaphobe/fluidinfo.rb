@@ -59,6 +59,8 @@ module Fluidinfo
       url = build_url path, options
       headers = options[:headers] || {}
       Response.new(@client[url].get headers)
+    rescue RestClient::Exception => e
+      Response.new e.response
     end
 
     ##
@@ -73,6 +75,8 @@ module Fluidinfo
       url = build_url path, options
       headers = options[:headers] || {}
       Response.new(@client[url].head headers)
+    rescue RestClient::Exception => e
+      Response.new e.response
     end
 
     ##
@@ -94,6 +98,8 @@ module Fluidinfo
         headers.merge! :content_type => "application/json"
       end
       Response.new(@client[url].post body, headers)
+    rescue RestClient::Exception => e
+      Response.new e.response
     end
 
     ##
@@ -111,6 +117,8 @@ module Fluidinfo
       body, mime = build_payload options
       headers = (options[:headers] || {}).merge :content_type => mime
       Response.new(@client[url].put body, headers)
+    rescue RestClient::Exception => e
+      Response.new e.response
     end
 
     ##
@@ -128,6 +136,8 @@ module Fluidinfo
       headers = options[:headers] || {}
       # nothing returned in response body for DELETE
       Response.new(@client[url].delete headers)
+    rescue RestClient::Exception => e
+      Response.new e.response
     end
 
     private
