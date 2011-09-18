@@ -157,13 +157,11 @@ module Fluidinfo
         end
         arr
       end.join('&')
-      # fix for /about API
-      if path.start_with? '/about/'
-        path = path.split("/").map do |x|
-          # " " should be translated to "%20", but neither URI nor CGI
-          # seem to do it the way fluidinfo wants...
-          (CGI.escape x).gsub('+', '%20')
-        end.join("/")
+      # paths passed as arrays indicate we need extra escaping, ie for urls
+      if path.is_a? Array
+        path = '/' + path.map{|p| (CGI.escape p).gsub('+', '%20')}.join('/')
+      else
+        path = URI.escape path
       end
       if args != ''
         "#{path}?#{args}"
