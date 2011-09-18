@@ -1,6 +1,5 @@
 require "rest-client"
 require "cgi"
-require "uri"
 require "yajl"
 require "base64"
 
@@ -160,9 +159,11 @@ module Fluidinfo
       end.join('&')
       # fix for /about API
       if path.start_with? '/about/'
-        # path components need to be escaped with URI.escape instead
-        # of CGI.escape so " " is translated properly to "%20"
-        path = path.split("/").map{|x| URI.escape x}.join("/")
+        path = path.split("/").map do |x|
+          # " " should be translated to "%20", but neither URI nor CGI
+          # seem to do it the way fluidinfo wants...
+          (CGI.escape x).gsub('+', '%20')
+        end.join("/")
       end
       if args != ''
         "#{path}?#{args}"

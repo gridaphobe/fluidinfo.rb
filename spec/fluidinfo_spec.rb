@@ -149,7 +149,7 @@ describe Fluidinfo do
         r = @fluid.post '/namespaces/test', :body => ns_body
         r["id"].should_not be_nil
 
-        ns_id = resp["id"]      # for later use
+        ns_id = r["id"]      # for later use
         new_tag = UUIDTools::UUID.random_create
         tag_body = {
           'description' => 'a test tag',
@@ -185,7 +185,7 @@ describe Fluidinfo do
         r = @fluid.post '/namespaces/test', :body => ns_body
         r["id"].should_not be_nil
 
-        ns_id = resp["id"]      # for later use
+        ns_id = r["id"]      # for later use
         new_tag = UUIDTools::UUID.random_create
         tag_body = {
           'description' => 'a test tag',
@@ -237,7 +237,7 @@ describe Fluidinfo do
 
       it "escapes &'s in about-values" do
         about = "tom & jerry"
-        expected = "/about/tom%20&%20jerry"
+        expected = "/about/tom%20%26%20jerry"
         @fluid.test_build_url('/about/tom & jerry').should eq(expected)
       end
     end
