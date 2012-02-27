@@ -91,10 +91,14 @@ describe Fluidinfo do
             }
           }
         }
-        @fluid.get("/values",
-                   :query => 'fluiddb/users/username="gridaphobe"',
-                   :tags => ['fluiddb/users/username',
-                             'fluiddb/about']).value.should eq(expected)
+        r = @fluid.get("/values",
+                       :query => 'fluiddb/users/username="gridaphobe"',
+                       :tags => ['fluiddb/users/username',
+                                 'fluiddb/about']).value
+        r["results"]["id"].values.first.each do |k,h|
+          h.delete "updated-at"
+        end
+        r.should eq(expected)
       end
     end
   end
